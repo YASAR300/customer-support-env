@@ -118,7 +118,7 @@ h1{font-size:3em}
 </head>
 <body>
 
-<div class="badge sketch">🏆 OpenEnv Compatible &nbsp;·&nbsp; Hackathon 2025</div>
+<div class="badge sketch">🏆 OpenEnv Compatible &nbsp;·&nbsp; Hackathon 2026</div>
 
 <h1>🎫 Customer Support Triage</h1>
 <p class="subtitle">
