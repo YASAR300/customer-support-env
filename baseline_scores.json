@@ -1,0 +1,9 @@
+{
+  "model": "llama-3.3-70b-versatile",
+  "scores": {
+    "task_easy": 0.7,
+    "task_medium": 0.5563,
+    "task_hard": 0.2892
+  },
+  "average": 0.5151666666666667
+}
