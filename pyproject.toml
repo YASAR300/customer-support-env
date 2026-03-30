@@ -1,0 +1,33 @@
+[build-system]
+requires = ["setuptools>=61.0"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "customer-support-triage"
+version = "1.0.0"
+description = "A real-world customer support ticket triage and resolution environment."
+readme = "README.md"
+authors = [
+    { name = "OpenEnv Team" }
+]
+dependencies = [
+    "fastapi>=0.104.1",
+    "uvicorn>=0.24.0",
+    "pydantic>=2.5.0",
+    "openai>=1.3.0",
+    "python-multipart>=0.0.6",
+    "httpx>=0.25.2",
+    "pytest>=7.4.3",
+    "python-dotenv>=1.0.0",
+    "tenacity>=8.2.3",
+    "typer>=0.9.0",
+    "openenv-core>=0.2.3"
+]
+
+[project.scripts]
+support-env = "inference:main"
+server = "server.app:main"
+
+[tool.setuptools]
+packages = ["env", "api"]
+py-modules = ["inference"]

@@ -1,0 +1,67 @@
+# openenv.yaml
+name: customer-support-triage
+version: "1.0.0"
+description: >
+  A real-world customer support ticket triage and resolution environment.
+  An AI agent manages an inbox of support tickets, prioritizes them by
+  urgency, routes to correct departments, and drafts appropriate responses.
+  
+author: "OpenEnv Team"
+tags:
+  - customer-support
+  - nlp
+  - triage
+  - business-automation
+
+entrypoint: "python inference.py"
+
+tasks:
+  - id: task_easy
+    name: "Ticket Priority Classification"
+    difficulty: easy
+    max_steps: 10
+    description: "Classify 5 tickets by priority"
+    
+  - id: task_medium
+    name: "Multi-Department Routing"
+    difficulty: medium
+    max_steps: 20
+    description: "Route 10 tickets to correct departments"
+    
+  - id: task_hard
+    name: "Full Resolution Pipeline"
+    difficulty: hard
+    max_steps: 30
+    description: "Triage, route, respond, and resolve 15 tickets"
+
+observation_space:
+  type: object
+  properties:
+    inbox: {type: array}
+    resolved_tickets: {type: array}
+    sla_violations: {type: integer}
+    correct_routings: {type: integer}
+    correct_priorities: {type: integer}
+    total_tickets: {type: integer}
+    steps_taken: {type: integer}
+    last_action_result: {type: string}
+    last_action_error: {type: string}
+
+action_space:
+  type: object
+  properties:
+    action_type:
+      type: string
+      enum: [classify_priority, route_ticket, draft_response, resolve_ticket, escalate]
+    ticket_id: {type: string}
+    priority: {type: string, enum: [low, medium, high, critical]}
+    department: {type: string, enum: [billing, technical, returns, general, escalation]}
+    response_text: {type: string}
+
+metrics:
+  - name: "Average Score"
+    id: "average_score"
+    type: "mean"
+    description: "Average score across all tasks"
+
+reward_range: [-1.0, 1.0]
