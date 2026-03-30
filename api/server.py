@@ -58,10 +58,13 @@ def health():
 
 
 @app.post("/reset")
-def reset(request: ResetRequest):
+def reset(request: Optional[ResetRequest] = None):
     try:
-        obs = env.reset(task_id=request.task_id or "task_easy")
-        return obs.model_dump()
+        task_id = "task_easy"
+        if request and request.task_id:
+            task_id = request.task_id
+        obs = env.reset(task_id=task_id)
+        return obs
     except ValueError as e:
         raise HTTPException(status_code=400, detail=str(e))
 
