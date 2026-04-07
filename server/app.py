@@ -324,19 +324,21 @@ async def custom_swagger_ui_html():
 
 
 @app.post("/reset")
-def reset(request: Optional[ResetRequest] = None):
+async def reset(request: Optional[ResetRequest] = None):
     try:
         task_id = "task_easy"
         if request and request.task_id:
             task_id = request.task_id
         obs = env.reset(task_id=task_id)
-        return obs
+        return obs.model_dump()
     except ValueError as e:
         raise HTTPException(status_code=400, detail=str(e))
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))
 
 
 @app.post("/step")
-def step(request: ActionRequest):
+async def step(request: ActionRequest):
     try:
         action = Action(
             action_type=ActionType(request.action_type),
