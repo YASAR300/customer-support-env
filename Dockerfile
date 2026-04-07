@@ -1,4 +1,4 @@
-FROM python:3.11.9-slim-bullseye
+FROM mirror.gcr.io/library/python:3.11-slim
 
 # Install system dependencies
 RUN apt-get update && apt-get install -y \
@@ -14,7 +14,7 @@ ENV PYTHONDONTWRITEBYTECODE=1
 # Copy requirements first for layer caching
 COPY requirements.txt .
 
-# Install dependencies directly via pip (no uv to keep build simple)
+# Install dependencies directly via pip
 RUN pip install --no-cache-dir -r requirements.txt
 
 # Copy the rest of the code
