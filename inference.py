@@ -129,7 +129,7 @@ def run_task(task_id: str) -> float:
                 action_data = parse_action(response_text)
                 if not action_data:
                     # Required structured format: [STEP] step=N reward=X
-                    print(f"[STEP] step={step} reward=0.0", flush=True)
+                    print(f"[STEP] step={step} reward=0.001", flush=True)
                     step_count = step
                     continue
 
@@ -153,10 +153,12 @@ def run_task(task_id: str) -> float:
                 if result.done:
                     break
             except Exception as e:
-                print(f"[STEP] step={step} reward=0.0", flush=True)
+                print(f"[STEP] step={step} reward=0.001", flush=True)
                 step_count = step
 
-        final_score = env.state().get("current_score", 0.0)
+        raw_score = env.state().get("current_score", 0.001)
+        # Judge requires score strictly between 0 and 1 (never 0.0 or 1.0 exactly)
+        final_score = max(0.001, min(0.999, float(raw_score)))
         # Required structured format: [END] task=NAME score=X steps=N
         print(f"[END] task={task_id} score={final_score:.4f} steps={step_count}", flush=True)
         return final_score
