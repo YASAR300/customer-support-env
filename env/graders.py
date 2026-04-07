@@ -3,6 +3,11 @@ from typing import List, Dict
 from .models import Ticket, Priority
 
 
+def strict_clamp(score: float) -> float:
+    """Clamp score to strictly (0, 1) — judge rejects exact 0.0 or 1.0."""
+    return round(min(0.999, max(0.001, score)), 4)
+
+
 class TaskGrader:
     """Base grader class"""
     
@@ -56,7 +61,7 @@ class EasyGrader(TaskGrader):
         accuracy = total_score / graded_count
         
         final_score = accuracy * coverage
-        return round(min(1.0, max(0.0, final_score)), 4)
+        return strict_clamp(final_score)
 
 
 class MediumGrader(TaskGrader):
@@ -106,7 +111,7 @@ class MediumGrader(TaskGrader):
         efficiency_bonus = step_efficiency * 0.05
         
         combined = 0.4 * avg_priority + 0.6 * avg_routing + efficiency_bonus
-        return round(min(1.0, max(0.0, combined)), 4)
+        return strict_clamp(combined)
 
 
 class HardGrader(TaskGrader):
@@ -137,7 +142,7 @@ class HardGrader(TaskGrader):
             0.10 * resolution_score
         )
         
-        return round(min(1.0, max(0.0, final)), 4)
+        return strict_clamp(final)
     
     def _score_priorities(self, tickets):
         scores = []
