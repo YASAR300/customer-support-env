@@ -7,3 +7,6 @@ httpx==0.25.2
 pytest==7.4.3
 python-dotenv==1.0.0
 tenacity==8.2.3
+typer>=0.9.0
+openenv-core>=0.2.3
+setuptools>=61.0

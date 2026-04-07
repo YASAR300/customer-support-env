@@ -1,4 +1,4 @@
-FROM python:3.11-slim
+FROM python:3.11.9-slim-bullseye
 
 # Install system dependencies
 RUN apt-get update && apt-get install -y \
@@ -7,17 +7,18 @@ RUN apt-get update && apt-get install -y \
 
 WORKDIR /app
 
-# Optimization: Better python logging
+# Better python logging
 ENV PYTHONUNBUFFERED=1
+ENV PYTHONDONTWRITEBYTECODE=1
 
-# Install uv for fast dependency management
-RUN pip install --no-cache-dir uv
+# Copy requirements first for layer caching
+COPY requirements.txt .
 
-# Copy the rest of the code before installing so pyproject.toml can find files
+# Install dependencies directly via pip (no uv to keep build simple)
+RUN pip install --no-cache-dir -r requirements.txt
+
+# Copy the rest of the code
 COPY . .
-
-# Install dependencies and project using uv
-RUN uv pip install --system .
 
 # Port expose (HF Spaces standard)
 EXPOSE 7860
@@ -26,6 +27,5 @@ EXPOSE 7860
 HEALTHCHECK --interval=30s --timeout=10s --start-period=5s \
   CMD curl -f http://localhost:7860/health || exit 1
 
-# Start the server using the entry point defined in pyproject.toml
-# This ensures it passes the 'server' script requirement of OpenEnv
+# Start the server
 CMD ["python", "-m", "uvicorn", "server.app:app", "--host", "0.0.0.0", "--port", "7860"]
