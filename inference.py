@@ -11,27 +11,32 @@ from openai import OpenAI
 from tenacity import retry, stop_after_attempt, wait_exponential, retry_if_exception_type
 import openai
 
-# Load .env file (override=True to ensure .env keys are used)
-load_dotenv(override=True)
+# Load .env file (local dev only — judge env vars take precedence)
+load_dotenv(override=False)
 
 # ============ CONFIGURATION ============
-# Standardized vars for competition judging
-API_BASE_URL = os.environ.get("API_BASE_URL", "https://api.groq.com/openai/v1")
-MODEL_NAME = os.environ.get("MODEL_NAME", "llama-3.3-70b-versatile")
-OPENAI_API_KEY = os.environ.get("OPENAI_API_KEY") or os.environ.get("GROQ_API_KEY")
-HF_TOKEN = os.environ.get("HF_TOKEN")
+# Standard competition vars — only API_BASE_URL and MODEL_NAME have defaults
+API_BASE_URL = os.getenv("API_BASE_URL", "https://api.groq.com/openai/v1")
+MODEL_NAME = os.getenv("MODEL_NAME", "llama-3.3-70b-versatile")
+HF_TOKEN = os.getenv("HF_TOKEN")  # No default — judge injects this
 
-if not OPENAI_API_KEY:
-    raise ValueError("No API Key found! Please set OPENAI_API_KEY or GROQ_API_KEY in environment/env.")
+# Use HF_TOKEN as the API key (judge's OpenAI-compatible endpoint authenticates via this).
+# For local dev, fall back to GROQ/OPENAI keys. For open endpoints, use "EMPTY".
+API_KEY = (
+    os.getenv("OPENAI_API_KEY")
+    or os.getenv("GROQ_API_KEY")
+    or HF_TOKEN
+    or "EMPTY"
+)
 
 # ============ INITIALIZE CLIENT ============
 client = OpenAI(
-    api_key=OPENAI_API_KEY,
+    api_key=API_KEY,
     base_url=API_BASE_URL,
     timeout=60.0
 )
 
-THROTTLE_SECONDS = int(os.environ.get("THROTTLE_SECONDS", 1))
+THROTTLE_SECONDS = int(os.getenv("THROTTLE_SECONDS", 1))
 
 # ============ IMPORT ENV ============
 import sys
@@ -85,7 +90,7 @@ def parse_action(response_text: str) -> dict:
         return {}
 
 def run_task(task_id: str) -> float:
-    print(f"\n--- Running Task: {task_id} ---")
+    print(f"START task_id={task_id}")
     env = CustomerSupportEnv()
     try:
         obs_model = env.reset(task_id=task_id)
@@ -97,7 +102,7 @@ def run_task(task_id: str) -> float:
             unresolved = [t for t in observation["inbox"] if not t.get("is_resolved")]
             if not unresolved:
                 break
-            
+
             time.sleep(THROTTLE_SECONDS)
             user_content = build_prompt(observation, step)
 
@@ -120,12 +125,14 @@ def run_task(task_id: str) -> float:
                 completion = get_completion()
                 response_text = completion.choices[0].message.content or ""
                 action_data = parse_action(response_text)
-                if not action_data: 
-                    print(f"  Step {step}: Parsing error, skipping.")
+                if not action_data:
+                    print(f"STEP task_id={task_id} step={step} status=parse_error")
                     continue
-                
-                print(f"  Step {step}: {action_data.get('action_type')} on {action_data.get('ticket_id')}")
-                
+
+                action_type = action_data.get("action_type", "unknown")
+                ticket_id = action_data.get("ticket_id", "unknown")
+                print(f"STEP task_id={task_id} step={step} action={action_type} ticket={ticket_id}")
+
                 action = Action(
                     action_type=ActionType(action_data["action_type"]),
                     ticket_id=action_data["ticket_id"],
@@ -137,14 +144,14 @@ def run_task(task_id: str) -> float:
                 result = env.step(action)
                 observation = result.observation.model_dump()
                 total_reward += result.reward.value
-                
+
                 if result.done:
                     break
             except Exception as e:
-                print(f"  Step {step} error: {e}")
-                
+                print(f"STEP task_id={task_id} step={step} status=error error={e}")
+
         final_score = env.state().get("current_score", 0.0)
-        print(f"Task {task_id} Score: {final_score:.4f}")
+        print(f"END task_id={task_id} score={final_score:.4f}")
         return final_score
     finally:
         env.close()
@@ -155,12 +162,12 @@ def main():
     for task_id in tasks:
         scores[task_id] = run_task(task_id)
         time.sleep(2)
-    
+
     avg = sum(scores.values()) / len(scores)
     print("\n" + "="*40)
     print(f"FINAL AVERAGE SCORE: {avg:.4f}")
     print("="*40)
-    
+
     with open("baseline_scores.json", "w") as f:
         json.dump({"model": MODEL_NAME, "scores": scores, "average": avg}, f, indent=2)
 
