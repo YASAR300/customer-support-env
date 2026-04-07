@@ -90,8 +90,10 @@ def parse_action(response_text: str) -> dict:
         return {}
 
 def run_task(task_id: str) -> float:
-    print(f"START task_id={task_id}")
+    # Required structured format: [START] task=NAME
+    print(f"[START] task={task_id}", flush=True)
     env = CustomerSupportEnv()
+    step_count = 0
     try:
         obs_model = env.reset(task_id=task_id)
         observation = obs_model.model_dump()
@@ -126,12 +128,10 @@ def run_task(task_id: str) -> float:
                 response_text = completion.choices[0].message.content or ""
                 action_data = parse_action(response_text)
                 if not action_data:
-                    print(f"STEP task_id={task_id} step={step} status=parse_error")
+                    # Required structured format: [STEP] step=N reward=X
+                    print(f"[STEP] step={step} reward=0.0", flush=True)
+                    step_count = step
                     continue
-
-                action_type = action_data.get("action_type", "unknown")
-                ticket_id = action_data.get("ticket_id", "unknown")
-                print(f"STEP task_id={task_id} step={step} action={action_type} ticket={ticket_id}")
 
                 action = Action(
                     action_type=ActionType(action_data["action_type"]),
@@ -143,15 +143,22 @@ def run_task(task_id: str) -> float:
                 )
                 result = env.step(action)
                 observation = result.observation.model_dump()
-                total_reward += result.reward.value
+                step_reward = result.reward.value
+                total_reward += step_reward
+                step_count = step
+
+                # Required structured format: [STEP] step=N reward=X
+                print(f"[STEP] step={step} reward={step_reward:.4f}", flush=True)
 
                 if result.done:
                     break
             except Exception as e:
-                print(f"STEP task_id={task_id} step={step} status=error error={e}")
+                print(f"[STEP] step={step} reward=0.0", flush=True)
+                step_count = step
 
         final_score = env.state().get("current_score", 0.0)
-        print(f"END task_id={task_id} score={final_score:.4f}")
+        # Required structured format: [END] task=NAME score=X steps=N
+        print(f"[END] task={task_id} score={final_score:.4f} steps={step_count}", flush=True)
         return final_score
     finally:
         env.close()
@@ -164,9 +171,7 @@ def main():
         time.sleep(2)
 
     avg = sum(scores.values()) / len(scores)
-    print("\n" + "="*40)
-    print(f"FINAL AVERAGE SCORE: {avg:.4f}")
-    print("="*40)
+    print(f"\nFINAL AVERAGE SCORE: {avg:.4f}", flush=True)
 
     with open("baseline_scores.json", "w") as f:
         json.dump({"model": MODEL_NAME, "scores": scores, "average": avg}, f, indent=2)
